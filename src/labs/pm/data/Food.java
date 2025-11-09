@@ -10,7 +10,8 @@ public class Food extends Product{
         return bestBefore;
     }
 
-    public Food(int id, String name, BigDecimal price, Rating rating, LocalDate bestBefore) {
+    // once we removed the public access modifier, the constructor became package-private
+    Food(int id, String name, BigDecimal price, Rating rating, LocalDate bestBefore) {
         super(id, name, price, rating);
         this.bestBefore = bestBefore;
     }

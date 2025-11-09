@@ -28,20 +28,21 @@ public class Product {
     public final BigDecimal price;
     public final Rating rating;
 
-    public Product(int id, String name, BigDecimal price, Rating rating) {
+    // once we removed the public access modifier, the constructor became package-private
+    Product(int id, String name, BigDecimal price, Rating rating) {
         this.id = id;
         this.name = name;
         this.price = price;
         this.rating = rating;
     }
 
-    public Product(int id, String name, BigDecimal price) {
+/*    public Product(int id, String name, BigDecimal price) {
         this(id,name,price, Rating.NOT_RATED);
     }
 
     public Product(){
         this(0, "",BigDecimal.ZERO);
-    }
+    }*/
 
     public Rating getRating() {
         return rating;
