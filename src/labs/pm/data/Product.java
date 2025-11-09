@@ -17,7 +17,7 @@ import java.util.Objects;
  * @version 4.0
  * @author Firdaouss
  */
-public abstract class Product {
+public sealed abstract class Product permits Food, Drink {
     /**
      * A constant that defines a
      * {@link java.math.BigDecimal BigDecimal value of the discount rate}
