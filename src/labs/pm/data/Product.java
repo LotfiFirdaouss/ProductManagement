@@ -17,7 +17,7 @@ import java.util.Objects;
  * @version 4.0
  * @author Firdaouss
  */
-public sealed abstract class Product permits Food, Drink {
+public abstract sealed class Product implements Rateable<Product> permits Food, Drink {
     /**
      * A constant that defines a
      * {@link java.math.BigDecimal BigDecimal value of the discount rate}
