@@ -1,12 +1,30 @@
 package labs.pm.data;
 
 import java.math.BigDecimal;
+import java.text.MessageFormat;
+import java.text.NumberFormat;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
+import java.util.Locale;
+import java.util.ResourceBundle;
 
 public class ProductManager {
 
     private Product product;
     private Review review;
+    private Locale locale;
+    private ResourceBundle resources;
+    private DateTimeFormatter dateFormat;
+    private NumberFormat moneyFormat;
+
+    public ProductManager(Locale locale) {
+        this.locale = locale;
+        resources = ResourceBundle.getBundle("labs.pm.data.resources", locale);
+        dateFormat = DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT)
+                .localizedBy(locale);
+        moneyFormat = NumberFormat.getCurrencyInstance(locale);
+    }
 
     public Product createProduct(int id, String name, BigDecimal price,
                                  Rating rating, LocalDate bestBefore) {
@@ -28,12 +46,26 @@ public class ProductManager {
 
     public void printProductReport(){
         StringBuilder txt = new StringBuilder();
-        txt.append(product); // will invode product.toString()
+        String type = switch (product) {
+            case Food food -> resources.getString("food");
+            case Drink drink -> resources.getString("drink");
+        };
+        // we use MessageFormat to format the string with placeholders
+        txt.append(MessageFormat.format(resources.getString("product"),
+                product.getName(),
+                moneyFormat.format(product.getPrice()),
+                product.getRating().getStars(),
+                dateFormat.format(product.getBestBefore()),
+                type
+        ));
         txt.append("\n");
         if(review != null){
-            txt.append(review);
+            txt.append(MessageFormat.format(resources.getString("review"),
+                    review.rating().getStars(),
+                    review.comments()
+            ));
         }else{
-            txt.append("Not reviewed");
+            txt.append(resources.getString("no.reviews"));
         }
         txt.append("\n");
         System.out.println(txt);
