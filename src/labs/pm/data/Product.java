@@ -93,7 +93,7 @@ public abstract sealed class Product implements Rateable<Product> permits Food, 
         // false if the parameter is null
         if (this == o) return true;
         if (o instanceof Product product) { // pattern matching
-            return id == product.id && Objects.equals(name, product.name);
+            return id == product.id;
         }
         return false;
     }

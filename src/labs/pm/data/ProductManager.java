@@ -6,13 +6,18 @@ import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.ResourceBundle;
 
 public class ProductManager {
 
-    private Product product;
-    private Review review;
+    private Map<Product, List<Review>> products = new HashMap<>();
+
     private Locale locale;
     private ResourceBundle resources;
     private DateTimeFormatter dateFormat;
@@ -28,23 +33,55 @@ public class ProductManager {
 
     public Product createProduct(int id, String name, BigDecimal price,
                                  Rating rating, LocalDate bestBefore) {
-        product = new Food(id, name, price, rating, bestBefore);
+        Product product = new Food(id, name, price, rating, bestBefore);
+        products.putIfAbsent(product, new ArrayList<>());
         return product;
     }
 
     public Product createProduct(int id, String name, BigDecimal price,
                                  Rating rating) {
-        product = new Drink(id, name, price, rating);
+        Product product = new Drink(id, name, price, rating);
+        products.putIfAbsent(product, new ArrayList<>());
         return product;
     }
 
     public Product reviewProduct(Product product, Rating rating, String comments) {
-        review = new Review(rating, comments);
-        this.product = product.applyRating(rating);
-        return this.product;
+        // 1 - get the list of reviews for the product
+        List<Review> reviews = products.get(product);
+
+        // 2 - remove the product from the map to avoid concurrent modification exception
+        products.remove(product, reviews);
+
+        // 3 - add the new review to the list
+        reviews.add(new Review(rating, comments));
+
+        // 4 - calculate the new average rating
+        int sum = 0;
+        for(Review review : reviews){
+            sum += review.rating().ordinal();
+        }
+
+        // 5 - apply the new average rating to the product
+        // calculate the average rating and apply it to the product // use Math.round to round the float to the nearest integer // then convert it to Rating using Rateable.convert
+        product = product.applyRating(Rateable.convert(Math.round((float)sum/reviews.size())));
+
+        // 6 - put the product and the updated list of reviews back to the map
+        products.put(product, reviews);
+
+        // 7 - return the updated product
+        return product;
     }
 
-    public void printProductReport(){
+    public Product reviewProduct(int id, Rating rating, String comments) {
+        return reviewProduct(findProduct(id), rating, comments);
+    }
+
+    public void printProductReport(Product product) {
+        // 1 - get the list of reviews for the product
+        List<Review> reviews = products.get(product);
+        Collections.sort(reviews);
+
+        // 2 - prepare the report text
         StringBuilder txt = new StringBuilder();
         String type = switch (product) {
             case Food food -> resources.getString("food");
@@ -59,15 +96,34 @@ public class ProductManager {
                 type
         ));
         txt.append("\n");
-        if(review != null){
+        for(Review review : reviews){
             txt.append(MessageFormat.format(resources.getString("review"),
                     review.rating().getStars(),
                     review.comments()
             ));
-        }else{
-            txt.append(resources.getString("no.reviews"));
+            txt.append("\n");
         }
-        txt.append("\n");
+        if(reviews.isEmpty()){
+            txt.append(resources.getString("no.reviews"));
+            txt.append("\n");
+        }
+
+        // 3 - print the report (resulting text)
         System.out.println(txt);
+    }
+
+    public void printProductReport(int id){
+        printProductReport(findProduct(id));
+    }
+
+    public Product findProduct(int id){
+        Product result = null;
+        for(Product product: products.keySet()){
+            if(product.getId() == id){
+                result = product;
+                return result;
+            }
+        }
+        return result;
     }
 }
