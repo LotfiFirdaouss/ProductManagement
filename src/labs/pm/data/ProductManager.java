@@ -8,27 +8,40 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.ResourceBundle;
+import java.util.Set;
 
 public class ProductManager {
 
     private Map<Product, List<Review>> products = new HashMap<>();
+    private static Map<String, ResourceFormatter> formatters = Map.of(
+            "en-GB", new ResourceFormatter(Locale.UK),
+            "en-US", new ResourceFormatter(Locale.US),
+            "ru-RU", new ResourceFormatter(Locale.of("ru", "RU")),
+            "fr-FR", new ResourceFormatter(Locale.FRANCE),
+            "zh-CN", new ResourceFormatter(Locale.CHINA)
+    );
+    private ResourceFormatter formatter;
 
-    private Locale locale;
-    private ResourceBundle resources;
-    private DateTimeFormatter dateFormat;
-    private NumberFormat moneyFormat;
+    public void changeLocale(String languageTag){
+        formatter = formatters.getOrDefault(languageTag, formatters.get("en-GB"));
+    }
+
+    public static Set<String> getSupportedLocales(){
+        return formatters.keySet();
+    }
+
+    public ProductManager(String languageTag) {
+        changeLocale(languageTag);
+    }
 
     public ProductManager(Locale locale) {
-        this.locale = locale;
-        resources = ResourceBundle.getBundle("labs.pm.data.resources", locale);
-        dateFormat = DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT)
-                .localizedBy(locale);
-        moneyFormat = NumberFormat.getCurrencyInstance(locale);
+        this(locale.toString());
     }
 
     public Product createProduct(int id, String name, BigDecimal price,
@@ -83,32 +96,31 @@ public class ProductManager {
 
         // 2 - prepare the report text
         StringBuilder txt = new StringBuilder();
-        String type = switch (product) {
-            case Food food -> resources.getString("food");
-            case Drink drink -> resources.getString("drink");
-        };
+
         // we use MessageFormat to format the string with placeholders
-        txt.append(MessageFormat.format(resources.getString("product"),
-                product.getName(),
-                moneyFormat.format(product.getPrice()),
-                product.getRating().getStars(),
-                dateFormat.format(product.getBestBefore()),
-                type
-        ));
+        txt.append(formatter.formatProduct(product)); // format the product information
         txt.append("\n");
         for(Review review : reviews){
-            txt.append(MessageFormat.format(resources.getString("review"),
-                    review.rating().getStars(),
-                    review.comments()
-            ));
+            txt.append(formatter.formatReview(review)); // format each review
             txt.append("\n");
         }
         if(reviews.isEmpty()){
-            txt.append(resources.getString("no.reviews"));
+            txt.append(formatter.getText("no.reviews"));
             txt.append("\n");
         }
 
         // 3 - print the report (resulting text)
+        System.out.println(txt);
+    }
+
+    public void printProducts(Comparator<Product> sorter){
+        List<Product> productList = new ArrayList<>(products.keySet());
+        productList.sort(sorter);
+        StringBuilder txt = new StringBuilder();
+        for (Product product : productList) {
+            txt.append(formatter.formatProduct(product));
+            txt.append("\n");
+        }
         System.out.println(txt);
     }
 
@@ -125,5 +137,45 @@ public class ProductManager {
             }
         }
         return result;
+    }
+
+    private static class ResourceFormatter {
+        private Locale locale;
+        private ResourceBundle resources;
+        private DateTimeFormatter dateFormat;
+        private NumberFormat moneyFormat;
+
+        private ResourceFormatter(Locale locale) {
+            this.locale = locale;
+            resources = ResourceBundle.getBundle("labs.pm.data.resources", locale);
+            dateFormat = DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT)
+                    .localizedBy(locale);
+            moneyFormat = NumberFormat.getCurrencyInstance(locale);
+        }
+
+        private String formatProduct(Product product) {
+            String type = switch (product) {
+                case Food food -> resources.getString("food");
+                case Drink drink -> resources.getString("drink");
+            };
+            return MessageFormat.format(resources.getString("product"),
+                    product.getName(),
+                    moneyFormat.format(product.getPrice()),
+                    product.getRating().getStars(),
+                    dateFormat.format(product.getBestBefore()),
+                    type
+            );
+        }
+
+        private String formatReview(Review review) {
+            return MessageFormat.format(resources.getString("review"),
+                    review.rating().getStars(),
+                    review.comments()
+            );
+        }
+
+        private String getText(String key){
+            return resources.getString(key);
+        }
     }
 }
