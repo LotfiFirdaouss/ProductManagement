@@ -47,20 +47,20 @@ public class Shop {
         // print all products sorted by rating (descending)
         Comparator<Product> ratingSorter = (p1, p2) -> p2.getRating().ordinal() - p1.getRating().ordinal();
         System.out.println("Products sorted by rating (descending):");
-        pm.printProducts(ratingSorter);
+        pm.printProducts( p -> p.getPrice().floatValue() < 2,ratingSorter);
 
         // print all products sorted by price (descending)
         Comparator<Product> priceSorter = (p1, p2) -> p2.getPrice().compareTo(p1.getPrice());
         System.out.println("Products sorted by price:");
-        pm.printProducts(priceSorter);
+//        pm.printProducts(priceSorter);
 
         // Combine comparators: sort by rating,then by price
         System.out.println("Products sorted by rating, then by price:");
-        pm.printProducts(ratingSorter.thenComparing(priceSorter));
+//        pm.printProducts(ratingSorter.thenComparing(priceSorter));
 
         // Reverse order of comparators: sort by price, then by rating
         System.out.println("Reversing the previous sorting:");
-        pm.printProducts(ratingSorter.thenComparing(priceSorter).reversed());
+//        pm.printProducts(ratingSorter.thenComparing(priceSorter).reversed());
 
     }
 }

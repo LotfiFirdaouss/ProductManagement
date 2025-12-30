@@ -15,6 +15,10 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.Set;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+
+import static labs.pm.data.Rateable.convert;
 
 public class ProductManager {
 
@@ -69,14 +73,13 @@ public class ProductManager {
         reviews.add(new Review(rating, comments));
 
         // 4 - calculate the new average rating
-        int sum = 0;
-        for(Review review : reviews){
-            sum += review.rating().ordinal();
-        }
+        Double ratingValue = reviews.stream()
+                .mapToInt(p -> p.rating().ordinal())
+                .average()
+                .orElse(0);
 
         // 5 - apply the new average rating to the product
-        // calculate the average rating and apply it to the product // use Math.round to round the float to the nearest integer // then convert it to Rating using Rateable.convert
-        product = product.applyRating(Rateable.convert(Math.round((float)sum/reviews.size())));
+        product.applyRating(Rateable.convert((int) Math.round(ratingValue)));
 
         // 6 - put the product and the updated list of reviews back to the map
         products.put(product, reviews);
@@ -100,27 +103,36 @@ public class ProductManager {
         // we use MessageFormat to format the string with placeholders
         txt.append(formatter.formatProduct(product)); // format the product information
         txt.append("\n");
-        for(Review review : reviews){
-            txt.append(formatter.formatReview(review)); // format each review
-            txt.append("\n");
-        }
+
         if(reviews.isEmpty()){
-            txt.append(formatter.getText("no.reviews"));
-            txt.append("\n");
+            txt.append(formatter.getText("no.reviews") + '\n');
+        } else {
+            txt.append(reviews
+                    .stream()
+                    .map(review ->  formatter.formatReview(review) + '\n')
+                    .collect(Collectors.joining()));
         }
 
         // 3 - print the report (resulting text)
         System.out.println(txt);
     }
 
-    public void printProducts(Comparator<Product> sorter){
-        List<Product> productList = new ArrayList<>(products.keySet());
-        productList.sort(sorter);
+    public void printProducts(Predicate<Product> filter, Comparator<Product> sorter){
         StringBuilder txt = new StringBuilder();
-        for (Product product : productList) {
-            txt.append(formatter.formatProduct(product));
-            txt.append("\n");
-        }
+        // format each product and join them into a single string : more suitable for large number of products (if we want to use parallelStream in the future)
+        txt.append(products.keySet()
+                .stream()
+                .sorted(sorter)
+                .filter(filter)
+                .map(product -> formatter.formatProduct(product) + "\n")
+                .collect(Collectors.joining()));
+
+        // OR as an alternative using forEach
+        /* products.keySet()
+                .stream()
+                .sorted(sorter)
+                .forEach(product -> txt.append(formatter.formatProduct(product) + '\n')); */
+
         System.out.println(txt);
     }
 
@@ -129,14 +141,10 @@ public class ProductManager {
     }
 
     public Product findProduct(int id){
-        Product result = null;
-        for(Product product: products.keySet()){
-            if(product.getId() == id){
-                result = product;
-                return result;
-            }
-        }
-        return result;
+        return products.keySet().stream()
+                .filter(p -> p.getId() == id)
+                .findFirst()
+                .orElse(null);
     }
 
     private static class ResourceFormatter {
