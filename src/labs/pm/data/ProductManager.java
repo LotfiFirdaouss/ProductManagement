@@ -147,6 +147,22 @@ public class ProductManager {
                 .orElse(null);
     }
 
+    public Map<String, String> getDiscounts(){
+        // <String,String> ==> rating(stars), discount
+        return products.keySet()
+                .stream()
+                .collect(
+                        Collectors.groupingBy(
+                                p -> p.getRating().getStars(),
+                                Collectors.collectingAndThen(
+                                        Collectors.summingDouble(
+                                                product -> product.getDiscount().doubleValue()
+                                        ),
+                                        discount -> formatter.moneyFormat.format(discount)
+                                )));
+
+    }
+
     private static class ResourceFormatter {
         private Locale locale;
         private ResourceBundle resources;
