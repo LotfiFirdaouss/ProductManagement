@@ -1,7 +1,8 @@
 # ☕ Java SE 21 — Programming Complete Course Practice
 
 This repository is part of my journey to master **Java SE 21**, the latest Long-Term Support (LTS) release of Java.  
-It contains all my practice exercises, notes, and projects built while following the **Java SE 21: Programming Complete Course**.
+It contains all my practice exercises, notes, and projects built while following the **Java SE 21: Programming Complete Course**.(forked)
+
 
 ---
 
