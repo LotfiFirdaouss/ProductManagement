@@ -16,13 +16,14 @@ import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
-
-import static labs.pm.data.Rateable.convert;
 
 public class ProductManager {
 
     private Map<Product, List<Review>> products = new HashMap<>();
+    private static final Logger logger = Logger.getLogger(ProductManager.class.getName());
     private static Map<String, ResourceFormatter> formatters = Map.of(
             "en-GB", new ResourceFormatter(Locale.UK),
             "en-US", new ResourceFormatter(Locale.US),
@@ -89,7 +90,12 @@ public class ProductManager {
     }
 
     public Product reviewProduct(int id, Rating rating, String comments) {
-        return reviewProduct(findProduct(id), rating, comments);
+        try {
+            return reviewProduct(findProduct(id), rating, comments);
+        } catch (ProductManagerException e) {
+            logger.log(Level.INFO, e.getMessage());
+            return null;
+        }
     }
 
     public void printProductReport(Product product) {
@@ -137,14 +143,20 @@ public class ProductManager {
     }
 
     public void printProductReport(int id){
-        printProductReport(findProduct(id));
+        try {
+            printProductReport(findProduct(id));
+        } catch (ProductManagerException e) {
+            logger.log(Level.INFO, e.getMessage());
+        }
     }
 
-    public Product findProduct(int id){
+    public Product findProduct(int id) throws ProductManagerException{
         return products.keySet().stream()
                 .filter(p -> p.getId() == id)
                 .findFirst()
-                .orElse(null);
+                .orElseThrow(() ->
+                        new ProductManagerException("Product with ID " + id + " not found."));
+        //                .get();
     }
 
     public Map<String, String> getDiscounts(){
