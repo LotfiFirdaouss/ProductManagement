@@ -17,13 +17,16 @@ public class Shop {
     public static void main(String[] args) {
         ProductManager pm = new ProductManager("en-GB");
 
-        pm.createProduct(101, "Tea", BigDecimal.valueOf(1.99), Rating.THREE_STAR);
+//        pm.createProduct(101, "Tea", BigDecimal.valueOf(1.99), Rating.NOT_RATED);
+        pm.parseProduct("F,101,Tea,1.99,0,2021-09-21");
         pm.printProductReport(101);
-        pm.reviewProduct(101, Rating.FOUR_STAR, "Nice hot cup of tea");
+        pm.parseReview("101,5,Excellent tea");
+        pm.parseReview("101,3,Good tea");
+        pm.parseReview("101,4,Nice hot cup of tea");
         pm.printProductReport(101);
-        pm.reviewProduct(101, Rating.THREE_STAR, "Good tea but a bit weak");
-        pm.reviewProduct(101, Rating.FIVE_STAR, "Perfect tea");
-        pm.reviewProduct(101, Rating.TWO_STAR, "Too cold");
+        pm.parseReview("101,3,Good tea but a bit weak");
+        pm.parseReview("101,5,Perfect tea");
+        pm.parseReview("101,2,Too cold");
         pm.printProductReport(101);
 
         pm.changeLocale("ru-RU");
@@ -43,16 +46,16 @@ public class Shop {
         pm.printProductReport(105);
         pm.printProductReport(106);
 
-        // print all products sorted by rating (descending)
-        Comparator<Product> ratingSorter = (p1, p2) -> p2.getRating().ordinal() - p1.getRating().ordinal();
-//        System.out.println("Products sorted by rating (descending):");
-        pm.printProducts( p -> p.getPrice().floatValue() < 2,ratingSorter);
-        pm.getDiscounts().forEach(
-                (rating, discount) -> System.out.println(rating + "\t" + discount)
-        );
+//        // print all products sorted by rating (descending)
+//        Comparator<Product> ratingSorter = (p1, p2) -> p2.getRating().ordinal() - p1.getRating().ordinal();
+////        System.out.println("Products sorted by rating (descending):");
+//        pm.printProducts( p -> p.getPrice().floatValue() < 2,ratingSorter);
+//        pm.getDiscounts().forEach(
+//                (rating, discount) -> System.out.println(rating + "\t" + discount)
+//        );
 
         // print all products sorted by price (descending)
-        Comparator<Product> priceSorter = (p1, p2) -> p2.getPrice().compareTo(p1.getPrice());
+//        Comparator<Product> priceSorter = (p1, p2) -> p2.getPrice().compareTo(p1.getPrice());
 //        System.out.println("Products sorted by price:");
 //        pm.printProducts(priceSorter);
 

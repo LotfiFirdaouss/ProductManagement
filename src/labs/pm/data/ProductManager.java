@@ -3,8 +3,10 @@ package labs.pm.data;
 import java.math.BigDecimal;
 import java.text.MessageFormat;
 import java.text.NumberFormat;
+import java.text.ParseException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.time.format.FormatStyle;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -20,6 +22,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+import static labs.pm.data.Rateable.convert;
+
 public class ProductManager {
 
     private Map<Product, List<Review>> products = new HashMap<>();
@@ -32,6 +36,10 @@ public class ProductManager {
             "zh-CN", new ResourceFormatter(Locale.CHINA)
     );
     private ResourceFormatter formatter;
+
+    private ResourceBundle config = ResourceBundle.getBundle("labs.pm.data.config");
+    private MessageFormat reviewFormat = new MessageFormat(config.getString("review.data.format"));
+    private MessageFormat productFormat = new MessageFormat(config.getString("product.data.format"));
 
     public void changeLocale(String languageTag){
         formatter = formatters.getOrDefault(languageTag, formatters.get("en-GB"));
@@ -68,19 +76,19 @@ public class ProductManager {
         List<Review> reviews = products.get(product);
 
         // 2 - remove the product from the map to avoid concurrent modification exception
-        products.remove(product, reviews);
+        products.remove(product);
 
         // 3 - add the new review to the list
         reviews.add(new Review(rating, comments));
 
         // 4 - calculate the new average rating
-        Double ratingValue = reviews.stream()
+        double ratingValue = reviews.stream()
                 .mapToInt(p -> p.rating().ordinal())
                 .average()
                 .orElse(0);
 
-        // 5 - apply the new average rating to the product
-        product.applyRating(Rateable.convert((int) Math.round(ratingValue)));
+        // 5 - apply the new average rating to the product (applyRating returns a new instance)
+        product = product.applyRating(convert((int) Math.round(ratingValue)));
 
         // 6 - put the product and the updated list of reviews back to the map
         products.put(product, reviews);
@@ -111,7 +119,7 @@ public class ProductManager {
         txt.append("\n");
 
         if(reviews.isEmpty()){
-            txt.append(formatter.getText("no.reviews") + '\n');
+            txt.append(formatter.getText("no.reviews")).append('\n');
         } else {
             txt.append(reviews
                     .stream()
@@ -133,13 +141,39 @@ public class ProductManager {
                 .map(product -> formatter.formatProduct(product) + "\n")
                 .collect(Collectors.joining()));
 
-        // OR as an alternative using forEach
-        /* products.keySet()
-                .stream()
-                .sorted(sorter)
-                .forEach(product -> txt.append(formatter.formatProduct(product) + '\n')); */
-
         System.out.println(txt);
+    }
+
+    public void parseReview(String text) {
+        try {
+            Object[] values = reviewFormat.parse(text);
+            int id = Integer.parseInt((String) values[0]);
+            Rating rating = convert(Integer.parseInt((String) values[1]));
+            String comments = (String) values[2];
+            reviewProduct(id, rating, comments);
+        } catch (ParseException | NumberFormatException e) {
+            logger.log(Level.WARNING, () -> "Error parsing review " + text + " : " + e.getMessage());
+        }
+    }
+
+    public void parseProduct(String text){
+        try {
+            Object[] values = productFormat.parse(text);
+            int id = Integer.parseInt((String) values[1]);
+            String name = (String) values[2];
+            BigDecimal price = BigDecimal.valueOf(Double.parseDouble((String) values[3]));
+            Rating rating = convert(Integer.parseInt((String) values[4]));
+            switch ((String) values[0]) {
+                case "D" :
+                    createProduct(id, name, price, rating);
+                    break;
+                case "F" :
+                    LocalDate bestBefore = LocalDate.parse((String) values[5]);
+                    createProduct(id, name, price, rating, bestBefore);
+            }
+        } catch (ParseException | NumberFormatException | DateTimeParseException e) {
+            logger.log(Level.WARNING, () -> "Error parsing product " + text + " : " + e.getMessage());
+        }
     }
 
     public void printProductReport(int id){
@@ -156,7 +190,6 @@ public class ProductManager {
                 .findFirst()
                 .orElseThrow(() ->
                         new ProductManagerException("Product with ID " + id + " not found."));
-        //                .get();
     }
 
     public Map<String, String> getDiscounts(){
@@ -171,18 +204,17 @@ public class ProductManager {
                                                 product -> product.getDiscount().doubleValue()
                                         ),
                                         discount -> formatter.moneyFormat.format(discount)
-                                )));
+                                )))
+                ;
 
     }
 
     private static class ResourceFormatter {
-        private Locale locale;
         private ResourceBundle resources;
         private DateTimeFormatter dateFormat;
         private NumberFormat moneyFormat;
 
         private ResourceFormatter(Locale locale) {
-            this.locale = locale;
             resources = ResourceBundle.getBundle("labs.pm.data.resources", locale);
             dateFormat = DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT)
                     .localizedBy(locale);
@@ -191,8 +223,8 @@ public class ProductManager {
 
         private String formatProduct(Product product) {
             String type = switch (product) {
-                case Food food -> resources.getString("food");
-                case Drink drink -> resources.getString("drink");
+                case Food ignored -> resources.getString("food");
+                case Drink ignored -> resources.getString("drink");
             };
             return MessageFormat.format(resources.getString("product"),
                     product.getName(),
